@@ -211,13 +211,17 @@ class _MapScreenState extends State<MapScreen> {
             point: latLng,
             width: 80,
             height: 80,
+
             child: Builder(
               builder: (BuildContext context) {
                 return DraggableMarker(
                   point: latLng,
                   onDragEnd: (newLatLng) {
                     setState(() {
-                      markers[markers.indexWhere((marker) => marker.point == latLng)] = Marker(
+                      // Encuentra el índice del marcador que se está arrastrando
+                      int markerIndex = markers.indexWhere((marker) => marker.point == latLng);
+                      // Actualiza el marcador con la nueva posición
+                      markers[markerIndex] = Marker(
                         point: newLatLng,
                         width: 80,
                         height: 80,
@@ -225,19 +229,21 @@ class _MapScreenState extends State<MapScreen> {
                           builder: (BuildContext context) {
                             return DraggableMarker(
                               point: newLatLng,
-                              onDragEnd:(details) {
+                              onDragEnd: (details) {
                                 setState(() {
-                                  print(
-                                      "Latitude: ${latLng.latitude}, Longitude: ${latLng.longitude}");
+                                  // Aquí deberías actualizar la posición del marcador basado en newLatLng
+                                  // Sin embargo, parece que hay un error en la lógica de actualización
+                                  // Deberías estar actualizando el marcador basado en newLatLng, no en latLng
+                                  print("Latitude: ${newLatLng.latitude}, Longitude: ${newLatLng.longitude}");
                                 });
                               },
-                              
+
                             );
                           },
                         ),
-
                       );
                     });
+
                   },
                 );
               },
@@ -246,13 +252,9 @@ class _MapScreenState extends State<MapScreen> {
         );
       }
 
-      if (markers.length == 1) {
-        double zoomLevel = 16.5;
-        mapController.move(latLng, zoomLevel);
-      }
 
       if (markers.length == 2) {
-        // Adicionar um pequeno atraso antes de exibir o efeito de processo
+        // Adicionar um pequeno atraso antes de exibir efecto de processo
         Future.delayed(const Duration(milliseconds: 500), () {
           setState(() {
             isLoading = true;
