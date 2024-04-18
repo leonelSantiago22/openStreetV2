@@ -46,7 +46,7 @@ class _MapScreenState extends State<MapScreen> {
   bool showAdditionalButtons = false;
   TextEditingController searchController = TextEditingController();
   LatLng? searchLocation;
-
+  final MapController mapController = MapController();
   Future<void> determineAndSetPosition() async {
     LocationPermission permission;
     permission = await Geolocator.checkPermission();
@@ -137,7 +137,7 @@ class _MapScreenState extends State<MapScreen> {
     });
   }
 
-  final MapController mapController = MapController();
+
 
 
   @override
@@ -165,16 +165,19 @@ class _MapScreenState extends State<MapScreen> {
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
           const SizedBox(height: 10),
-           FloatingActionButton(
+           FloatingActionButton( // Botton de mostrar la buqueda
+             backgroundColor: Colors.blue,
             onPressed: () {
               setState(() {
                 showAdditionalButtons = !showAdditionalButtons;
               });
             },
-            child: Icon(Icons.add),
+            child: Icon(
+                Icons.map,
+                color: Colors.white),
           ),
           const SizedBox(height: 10),
-          FloatingActionButton(
+          FloatingActionButton( //Boton de zoom
             backgroundColor: Colors.black,
             onPressed: () {
               mapController.move(mapController.center, mapController.zoom + 1);
@@ -185,7 +188,7 @@ class _MapScreenState extends State<MapScreen> {
             ),
           ),
           const SizedBox(height: 10),
-          FloatingActionButton(
+          FloatingActionButton( // Boton de no hacer zoom
             backgroundColor: Colors.black,
             onPressed: () {
               mapController.move(mapController.center, mapController.zoom - 1);
@@ -199,6 +202,75 @@ class _MapScreenState extends State<MapScreen> {
       ),
     );
   }
+  // Funcion para trazar la ruta
+  void _handleTap2(LatLng latLng) {
+    setState(() {
+      if (markers.length < 2) {
+        markers.add(
+          Marker(
+            point: latLng,
+            width: 80,
+            height: 80,
+            child: Builder(
+              builder: (BuildContext context) {
+                return DraggableMarker(
+                  point: latLng,
+                  onDragEnd: (newLatLng) {
+                    setState(() {
+                      markers[markers.indexWhere((marker) => marker.point == latLng)] = Marker(
+                        point: newLatLng,
+                        width: 80,
+                        height: 80,
+                        child: Builder(
+                          builder: (BuildContext context) {
+                            return DraggableMarker(
+                              point: newLatLng,
+                              onDragEnd:(details) {
+                                setState(() {
+                                  print(
+                                      "Latitude: ${latLng.latitude}, Longitude: ${latLng.longitude}");
+                                });
+                              },
+                              
+                            );
+                          },
+                        ),
+
+                      );
+                    });
+                  },
+                );
+              },
+            ),
+          ),
+        );
+      }
+
+      if (markers.length == 1) {
+        double zoomLevel = 16.5;
+        mapController.move(latLng, zoomLevel);
+      }
+
+      if (markers.length == 2) {
+        // Adicionar um pequeno atraso antes de exibir o efeito de processo
+        Future.delayed(const Duration(milliseconds: 500), () {
+          setState(() {
+            isLoading = true;
+          });
+        });
+
+        getCoordinates(markers[0].point, markers[1].point);
+
+        // Calcular a extensão (bounding box) que envolve os dois pontos marcados
+        LatLngBounds bounds = LatLngBounds.fromPoints(
+            markers.map((marker) => marker.point).toList());
+        // Fazer um zoom out para que a extensão se ajuste à tela
+        mapController.fitBounds(bounds);
+      }
+    });
+  }
+
+
 
 
   Widget _handleTap(LatLng latLng) {
@@ -233,7 +305,7 @@ class _MapScreenState extends State<MapScreen> {
           maxZoom: 20,
           minZoom: 1,
           initialCenter: myPoint!,
-          onTap: (tapPosition, latLng) => _handleTap(latLng),
+          onTap: (tapPosition, latLng) => _handleTap2(latLng),
           interactionOptions: const InteractionOptions(flags: ~InteractiveFlag.doubleTapDragZoom),
         ),
         children: [
