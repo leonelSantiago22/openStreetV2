@@ -41,7 +41,8 @@ class DraggableMarker extends StatelessWidget {
 }
 
 class _MapScreenState extends State<MapScreen> {
-  LatLng? myPoint;
+  LatLng? myPoint; // Tipo de dato LatLang
+  // 2 parametros
   bool isLoading = false;
   bool showAdditionalButtons = false;
   TextEditingController searchController = TextEditingController();
