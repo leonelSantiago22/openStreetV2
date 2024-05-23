@@ -206,22 +206,20 @@ class _MapScreenState extends State<MapScreen> {
   // Funcion para trazar la ruta
   void _handleTap2(LatLng latLng) {
     setState(() {
-      if (markers.length < 2) {
+      if (markers.length < 6) {
         markers.add(
           Marker(
             point: latLng,
             width: 80,
             height: 80,
-
             child: Builder(
               builder: (BuildContext context) {
                 return DraggableMarker(
                   point: latLng,
                   onDragEnd: (newLatLng) {
                     setState(() {
-                      // Encuentra el índice del marcador que se está arrastrando
-                      int markerIndex = markers.indexWhere((marker) => marker.point == latLng);
-                      // Actualiza el marcador con la nueva posición
+                      int markerIndex =
+                      markers.indexWhere((marker) => marker.point == latLng);
                       markers[markerIndex] = Marker(
                         point: newLatLng,
                         width: 80,
@@ -232,19 +230,15 @@ class _MapScreenState extends State<MapScreen> {
                               point: newLatLng,
                               onDragEnd: (details) {
                                 setState(() {
-                                  // Aquí deberías actualizar la posición del marcador basado en newLatLng
-                                  // Sin embargo, parece que hay un error en la lógica de actualización
-                                  // Deberías estar actualizando el marcador basado en newLatLng, no en latLng
-                                  print("Latitude: ${newLatLng.latitude}, Longitude: ${newLatLng.longitude}");
+                                  print(
+                                      "Latitude: ${newLatLng.latitude}, Longitude: ${newLatLng.longitude}");
                                 });
                               },
-
                             );
                           },
                         ),
                       );
                     });
-
                   },
                 );
               },
@@ -253,24 +247,54 @@ class _MapScreenState extends State<MapScreen> {
         );
       }
 
-
-      if (markers.length == 2) {
-        // Adicionar um pequeno atraso antes de exibir efecto de processo
+      if (markers.length == 5) {
         Future.delayed(const Duration(milliseconds: 500), () {
           setState(() {
             isLoading = true;
           });
+
+          _getRouteForAllPoints(markers.map((marker) => marker.point).toList());
         });
 
-        getCoordinates(markers[0].point, markers[1].point);
-
-        // Calcular a extensão (bounding box) que envolve os dois pontos marcados
         LatLngBounds bounds = LatLngBounds.fromPoints(
             markers.map((marker) => marker.point).toList());
-        // Fazer um zoom out para que a extensão se ajuste à tela
         mapController.fitBounds(bounds);
       }
     });
+  }
+
+
+  Future<void> _getRouteForAllPoints(List<LatLng> points) async {
+    List<LatLng> allRoutePoints = [];
+
+    for (int i = 0; i < points.length - 1; i++) {
+      List<LatLng> segmentPoints =
+      await _getSegmentRoute(points[i], points[i + 1]);
+      allRoutePoints.addAll(segmentPoints);
+    }
+
+    setState(() {
+      this.points = allRoutePoints;
+      isLoading = false;
+    });
+  }
+
+  Future<List<LatLng>> _getSegmentRoute(LatLng start, LatLng end) async {
+    final OpenRouteService client = OpenRouteService(
+      apiKey: '5b3ce3597851110001cf62481d15c38eda2742818d1b9ff0e510ca77',
+    );
+
+    final List<ORSCoordinate> routeCoordinates =
+    await client.directionsRouteCoordsGet(
+      startCoordinate:
+      ORSCoordinate(latitude: start.latitude, longitude: start.longitude),
+      endCoordinate:
+      ORSCoordinate(latitude: end.latitude, longitude: end.longitude),
+    );
+
+    return routeCoordinates
+        .map((coordinate) => LatLng(coordinate.latitude, coordinate.longitude))
+        .toList();
   }
 
 
@@ -332,7 +356,6 @@ class _MapScreenState extends State<MapScreen> {
             ],
           ),
           PolylineLayer(
-            polylineCulling: false,
             polylines: [
               Polyline(
                 points: points,
