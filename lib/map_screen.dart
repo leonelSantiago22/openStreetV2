@@ -253,7 +253,7 @@ class _MapScreenState extends State<MapScreen> {
             isLoading = true;
           });
 
-          _getRouteForAllPoints(markers.map((marker) => marker.point).toList());
+          _greedySearch(markers.map((marker) => marker.point).toList());
         });
 
         LatLngBounds bounds = LatLngBounds.fromPoints(
@@ -264,20 +264,47 @@ class _MapScreenState extends State<MapScreen> {
   }
 
 
-  Future<void> _getRouteForAllPoints(List<LatLng> points) async {
+  Future<void> _greedySearch(List<LatLng> points) async {
     List<LatLng> allRoutePoints = [];
+    List<LatLng> unvisited = List.from(points); // Puntos no visitados
+    LatLng currentPoint = unvisited.removeAt(0); // Empezamos con el primer punto
+    LatLng startPoint = currentPoint; // Guardamos el punto inicial
 
-    for (int i = 0; i < points.length - 1; i++) {
-      List<LatLng> segmentPoints =
-      await _getSegmentRoute(points[i], points[i + 1]);
+    while (unvisited.isNotEmpty) {
+      LatLng closestPoint = unvisited[0];
+      double closestDistance = distance(currentPoint, closestPoint);
+
+      for (LatLng point in unvisited) {
+        double distanceToPoint = distance(currentPoint, point);
+        if (distanceToPoint < closestDistance) {
+          closestDistance = distanceToPoint;
+          closestPoint = point;
+        }
+      }
+
+      List<LatLng> segmentPoints = await _getSegmentRoute(currentPoint, closestPoint);
       allRoutePoints.addAll(segmentPoints);
+      currentPoint = closestPoint;
+      unvisited.remove(currentPoint);
     }
+
+    // Para cerrar el ciclo, añadir la ruta de vuelta al punto inicial (opcional)
+    List<LatLng> closingSegment = await _getSegmentRoute(currentPoint, startPoint);
+    allRoutePoints.addAll(closingSegment);
 
     setState(() {
       this.points = allRoutePoints;
       isLoading = false;
     });
   }
+
+// Función para calcular la distancia entre dos puntos
+  double distance(LatLng a, LatLng b) {
+    final double dx = a.latitude - b.latitude;
+    final double dy = a.longitude - b.longitude;
+    return dx * dx + dy * dy; // Distancia euclidiana al cuadrado para evitar raíces cuadradas
+  }
+
 
   Future<List<LatLng>> _getSegmentRoute(LatLng start, LatLng end) async {
     final OpenRouteService client = OpenRouteService(
@@ -414,7 +441,7 @@ class _MapScreenState extends State<MapScreen> {
       ),
       if (showAdditionalButtons)
         Positioned(
-          bottom: 220,
+          bottom: 230,
           right: 16,
           child: Column(
             children: [
@@ -452,6 +479,12 @@ class _MapScreenState extends State<MapScreen> {
                   determineAndSetPosition();
                 },
                 child: Icon(Icons.location_pin),
+              ),
+              FloatingActionButton(
+                onPressed: () {
+
+                },
+                child: Text("Avara"),
               ),
             ],
           ),
